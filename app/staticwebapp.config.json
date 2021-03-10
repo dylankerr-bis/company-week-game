@@ -17,6 +17,10 @@
             "redirect": "/.auth/logout"
         },
         {
+            "route": "/api/message",
+            "allowedRoles": ["administrator"]
+        },
+        {
             "route": "/api/*",
             "allowedRoles": ["authenticated"]
         }

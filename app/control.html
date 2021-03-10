@@ -33,7 +33,8 @@
             .then(console.log)
             .catch(console.error);
 
-        async function sendMessage() {
+        async function sendMessage(event) {
+            event.preventDefault();
             const message = input.value;
             const response = await fetch("/api/message", {
                 method: "POST",
