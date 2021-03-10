@@ -18,7 +18,7 @@
         const authMessage = document.querySelector("#authMessage");
 
         async function checkAuth() {
-            const { clientPrincipal } = await(await fetch("/.auth/me")).json();
+            const { clientPrincipal } = await (await fetch("/.auth/me")).json();
 
             if (!clientPrincipal) {
                 authMessage.textContent = "Not logged in.";
@@ -38,9 +38,12 @@
                 authMessage.textContent = "Logged in with a valid account";
             }
             const loginLink = document.createElement("a");
-            loginLink.href = "/login";
+            loginLink.href = "/logout";
             loginLink.textContent = "Click here to log out";
             document.body.appendChild(loginLink);
+
+            const message = await (await fetch("/api/message")).text();
+            document.body.appendChild(document.createTextNode(message));
         }
 
         checkAuth().catch(console.error);
