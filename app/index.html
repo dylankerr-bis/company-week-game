@@ -17,14 +17,18 @@
         const requiredDomain = "@bluesmithis.com";
         const authMessage = document.querySelector("#authMessage");
 
-        const { clientPrincipal } = await(await fetch("/.auth/me")).json();
-        if (!clientPrincipal) {
-            authMessage.textContent = "Not logged in.";
-            const loginLink = document.createElement("a");
-            loginLink.href = "/login";
-            loginLink.textContent = "Click here to log in with a Google account";
-            document.body.appendChild(loginLink);
-        } else {
+        async function checkAuth() {
+            const { clientPrincipal } = await(await fetch("/.auth/me")).json();
+
+            if (!clientPrincipal) {
+                authMessage.textContent = "Not logged in.";
+                const loginLink = document.createElement("a");
+                loginLink.href = "/login";
+                loginLink.textContent = "Click here to log in with a Google account";
+                document.body.appendChild(loginLink);
+                return;
+            }
+
             if (
                 clientPrincipal.identityProvider !== "google"
                 || !clientPrincipal.userDetails.endsWith(requiredDomain)
@@ -38,6 +42,8 @@
             loginLink.textContent = "Click here to log out";
             document.body.appendChild(loginLink);
         }
+
+        checkAuth().catch(console.error);
     </script>
 </body>
 
