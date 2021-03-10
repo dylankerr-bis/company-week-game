@@ -46,7 +46,7 @@
             input.value = "";
         }
 
-        document.querySelector("form").addEventListener(event => {
+        document.querySelector("form").addEventListener('submit', event => {
             event.preventDefault();
             sendMessage().catch(console.error);
         });
