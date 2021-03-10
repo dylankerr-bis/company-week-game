@@ -1,0 +1,26 @@
+{
+    "routes": [
+        {
+            "route": "/control.html",
+            "allowedRoles": ["administrator"]
+        },
+        {
+            "route": "/login",
+            "rewrite": "/.auth/login/google"
+        },
+        {
+            "route": "/.auth/login/*",
+            "statusCode": 404
+        },
+        {
+            "route": "/logout",
+            "redirect": "/.auth/logout"
+        }
+    ],
+    "responseOverrides": {
+        "401": {
+            "redirect": "/login",
+            "statusCode": 302
+        }
+    }
+}

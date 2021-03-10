@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Weekend Game</title>
+</head>
+
+<body>
+    <h1>Participate</h1>
+
+    <span id="authMessage"></span>
+
+    <script>
+        const requiredDomain = "@bluesmithis.com";
+        const authMessage = document.querySelector("#authMessage");
+
+        const { clientPrincipal } = await(await fetch("/.auth/me")).json();
+        if (!clientPrincipal) {
+            authMessage.textContent = "Not logged in.";
+            const loginLink = document.createElement("a");
+            loginLink.href = "/login";
+            loginLink.textContent = "Click here to log in with a Google account";
+            document.body.appendChild(loginLink);
+        } else {
+            if (
+                clientPrincipal.identityProvider !== "google"
+                || !clientPrincipal.userDetails.endsWith(requiredDomain)
+            ) {
+                authMessage.textContent = "Logged in, but not with a valid account";
+            } else {
+                authMessage.textContent = "Logged in with a valid account";
+            }
+            const loginLink = document.createElement("a");
+            loginLink.href = "/login";
+            loginLink.textContent = "Click here to log out";
+            document.body.appendChild(loginLink);
+        }
+    </script>
+</body>
+
+</html>
