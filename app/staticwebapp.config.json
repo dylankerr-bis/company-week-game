@@ -1,6 +1,10 @@
 {
     "routes": [
         {
+            "route": "/",
+            "rewrite": "/participate.html"
+        },
+        {
             "route": "/control.html",
             "allowedRoles": ["administrator"]
         },
