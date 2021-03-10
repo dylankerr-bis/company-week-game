@@ -10,7 +10,7 @@
 
 <body>
     <h1>Control</h1>
-    <form onsubmit="onSubmit">
+    <form>
         <input type="text" id="newMessage" autocomplete="off" />
     </form>
 
@@ -46,10 +46,10 @@
             input.value = "";
         }
 
-        function onSubmit(event) {
+        document.querySelector("form").addEventListener(event => {
             event.preventDefault();
             sendMessage().catch(console.error);
-        }
+        });
     </script>
 </body>
 
