@@ -10,47 +10,6 @@
 
 <body>
     <h1>Control</h1>
-    <form>
-        <input type="text" id="newMessage" autocomplete="off" />
-    </form>
-
-    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@5.0.4/dist/browser/signalr.js"></script>
-    <script>
-        const input = document.querySelector("#newMessage");
-
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/api")
-            .configureLogging(signalR.LogLevel.Information)
-            .build();
-
-        connection.on('newMessage', message => {
-            document.body.appendChild(document.createTextNode(message));
-        });
-        connection.onclose(() => console.log('disconnected'));
-
-        console.log('connecting...');
-        connection.start()
-            .then(console.log)
-            .catch(console.error);
-
-        async function sendMessage() {
-            const message = input.value;
-            const response = await fetch("/api/message", {
-                method: "POST",
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message }),
-            });
-            if (!response.ok) {
-                throw new Error(`POST returned ${response.status} ${response.statusText}`);
-            }
-            input.value = "";
-        }
-
-        document.querySelector("form").addEventListener('submit', event => {
-            event.preventDefault();
-            sendMessage().catch(console.error);
-        });
-    </script>
 </body>
 
 </html>

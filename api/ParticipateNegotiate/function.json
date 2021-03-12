@@ -1,0 +1,24 @@
+{
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["post"],
+      "route": "participate/negotiate"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
+    },
+    {
+      "type": "signalRConnectionInfo",
+      "direction": "in",
+      "name": "connectionInfo",
+      "hubName": "participate",
+      "userId": "{headers.x-ms-client-principal}"
+    }
+  ]
+}

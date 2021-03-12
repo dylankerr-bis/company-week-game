@@ -1,0 +1,24 @@
+{
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["get"],
+      "route": "control/question/{id}/responses"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
+    },
+    {
+      "type": "table",
+      "direction": "in",
+      "name": "responses",
+      "tableName": "gamedata",
+      "partitionKey": "QUESTION_{id}"
+    }
+  ]
+}

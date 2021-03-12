@@ -17,11 +17,11 @@
             "redirect": "/.auth/logout"
         },
         {
-            "route": "/api/message",
+            "route": "/api/control/*",
             "allowedRoles": ["administrator"]
         },
         {
-            "route": "/api/*",
+            "route": "/api/participate/*",
             "allowedRoles": ["authenticated"]
         }
     ],

@@ -6,7 +6,7 @@
       "direction": "in",
       "name": "req",
       "methods": ["post"],
-      "route": "message"
+      "route": "broadcast/negotiate"
     },
     {
       "type": "http",
@@ -14,11 +14,11 @@
       "name": "res"
     },
     {
-      "type": "signalR",
-      "name": "$return",
-      "hubName": "game",
-      "connectionStringSetting": "AzureSignalRConnectionString",
-      "direction": "out"
+      "type": "signalRConnectionInfo",
+      "direction": "in",
+      "name": "connectionInfo",
+      "hubName": "broadcast",
+      "userId": "{headers.x-ms-client-principal}"
     }
   ]
 }

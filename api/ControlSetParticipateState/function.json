@@ -1,0 +1,23 @@
+{
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["post"],
+      "route": "control/participate"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
+    },
+    {
+      "type": "signalR",
+      "name": "$return",
+      "hubName": "participate",
+      "direction": "out"
+    }
+  ]
+}

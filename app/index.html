@@ -44,12 +44,12 @@
             document.body.appendChild(loginLink);
 
             const connection = new signalR.HubConnectionBuilder()
-                .withUrl("/api")
+                .withUrl("/api/participate")
                 .configureLogging(signalR.LogLevel.Information)
                 .build();
 
-            connection.on('newMessage', message => {
-                document.body.appendChild(document.createTextNode(message));
+            connection.on('setState', state => {
+                console.log('setState', state);
             });
             connection.onclose(() => console.log('disconnected'));
 

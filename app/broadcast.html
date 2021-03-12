@@ -10,6 +10,24 @@
 
 <body>
     <h1>Broadcast</h1>
+
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@5.0.4/dist/browser/signalr.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/api/broadcast")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection.on('setState', state => {
+            console.log('setState', state);
+        });
+        connection.onclose(() => console.log('disconnected'));
+
+        console.log('connecting...');
+        connection.start()
+            .then(console.log)
+            .catch(console.error);
+    </script>
 </body>
 
 </html>
