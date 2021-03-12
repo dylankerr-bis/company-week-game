@@ -17,8 +17,7 @@
       "type": "signalRConnectionInfo",
       "direction": "in",
       "name": "connectionInfo",
-      "hubName": "participate",
-      "userId": "{headers.x-ms-client-principal}"
+      "hubName": "participate"
     }
   ]
 }

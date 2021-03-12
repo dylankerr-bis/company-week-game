@@ -17,7 +17,8 @@
       "type": "table",
       "direction": "out",
       "name": "$return",
-      "tableName": "gamedata"
+      "tableName": "gamedata",
+      "connection": "TableStorageConnectionString"
     }
   ]
 }

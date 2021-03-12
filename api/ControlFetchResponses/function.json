@@ -18,7 +18,8 @@
       "direction": "in",
       "name": "responses",
       "tableName": "gamedata",
-      "partitionKey": "QUESTION_{id}"
+      "partitionKey": "QUESTION_{id}",
+      "connection": "TableStorageConnectionString"
     }
   ]
 }
