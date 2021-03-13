@@ -5,8 +5,8 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": ["post"],
-      "route": "participate/respond"
+      "methods": ["delete"],
+      "route": "control/responses"
     },
     {
       "type": "http",

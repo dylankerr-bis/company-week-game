@@ -1,3 +1,8 @@
+const { TableClient } = require('@azure/data-tables');
+
+const connectionString = process.env.TableStorageConnectionString;
+const tableClient = TableClient.fromConnectionString(connectionString, 'gamedata');
+
 module.exports = async function (context, req) {
     const user = req.headers["x-ms-client-principal"];
     const body = req.body || {};
@@ -26,9 +31,20 @@ module.exports = async function (context, req) {
         return;
     }
 
-    return {
-        PartitionKey: `QUESTION_${questionId}`,
-        RowKey: user,
-        OptionId: optionId,
-    };
+    try {
+        await tableClient.createEntity({
+            PartitionKey: `QUESTION_${questionId}`,
+            RowKey: user,
+            OptionId: optionId,
+        });
+    } catch (err) {
+        // HTTP 409 Conflict should be passed through as-is.
+        if (err.statusCode !== 409) {
+            throw err;
+        }
+        context.res = {
+            status: 409,
+            body: 'Matching response already exists',
+        };
+    }
 };
