@@ -161,7 +161,7 @@
         });
         connection.onreconnected(() => {
             console.log('reconnected');
-            app.connected = false;
+            app.connected = true;
         });
         connection.onclose(error => {
             console.log(`connection closed due to ${error}`);

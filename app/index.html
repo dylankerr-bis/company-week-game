@@ -6,27 +6,157 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Company Weekend Game</title>
+
+    <style>
+        html {
+            font-size: 2rem;
+            font-family: Helvetica;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        .disconnect-warning {
+            position: absolute;
+            width: 100vw;
+            height: 2em;
+            background-color: red;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 20rem;
+            height: 100vh;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+
+        p {
+            color: #808080;
+        }
+
+        .login {
+            text-decoration: none;
+            width: 250px;
+            background: linear-gradient(180deg,#337ab7,#265a88);
+            border: 1px solid #245580;
+            border-radius: 4px;
+            padding: 6px 12px;
+            color: white;
+        }
+
+        .inner-container {
+            color: white;
+            text-transform: uppercase;
+            border: 0.4rem solid #541A3A;
+            background: #17169E;
+            border-radius: 2.5rem;
+            padding: 0.1rem 0.8rem 0.8rem;
+        }
+
+        .question, .option {
+            margin: 0.2rem;
+            border: 0.15rem solid #CFCDF2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-radius: 1.25rem;
+        }
+
+        .question {
+            font-size: 1.2rem;
+            height: 5rem;
+            background: radial-gradient(ellipse 2rem 0.3rem at 7rem 0%, rgba(150, 150, 255, 0.7), 30%, transparent),
+                linear-gradient(0deg, rgba(62, 27, 97, 1), 50%, transparent 60%),
+                linear-gradient(5deg, #25109A 75%, #514FB1 80%);
+        }
+
+        .option {
+            height: 2.2rem;
+            background: radial-gradient(ellipse 2rem 0.3rem at 7rem 0%, rgba(150, 150, 255, 0.7), 30%, transparent),
+                linear-gradient(0deg, rgba(70, 24, 166, 1), 35%, transparent 45%),
+                linear-gradient(8deg, #25109A 75%, #514FB1 80%);
+            cursor: pointer;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Participate</h1>
+    <div id="app">
+        <div class="disconnect-warning" v-if="authState === 'valid' && !connected">Reconnecting to server...</div>
+        <div class="container">
+            <div v-if="authState === 'none'">
+                <p>Click the button below to log in</p>
+                <a class="login" href="/login">
+                    Bluesmith Google Account
+                </a>
+            </div>
+            <div v-else-if="authState === 'invalid'">
+                <p>Logged in, but not with a valid account</p>
+                <p>Click the button below to log out</p>
+                <a class="login" href="/logout">
+                    Log out
+                </a>
+            </div>
+            <div v-else-if="authState === 'valid'">
+                <div v-if="!state">
+                    <p>Ready, waiting for question</p>
+                </div>
+                <div class="inner-container" v-else>
+                    <div class="question">{{state.QuestionText}}</div>
+                    <div class="option" v-for="(optionText, optionId) in state.Options" v-bind:key="optionId"
+                        v-on:click="respond(optionId)">
+                        {{optionText}}
+                    </div>
+                </div>
+            </div>
+            <div v-else>
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
 
-    <span id="authMessage"></span>
-
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@5.0.4/dist/browser/signalr.js"></script>
     <script>
-        const requiredDomain = "@bluesmithis.com";
-        const authMessage = document.querySelector("#authMessage");
+        const app = new Vue({
+            el: '#app',
+            data: {
+                authState: null,
+                connected: false,
+                state: null,
+            },
+            methods: {
+                respond(optionId) {
+                    const questionId = app.state.QuestionId;
+                    app.state = null;
+
+                    // Fire and forget, no response needed.
+                    fetch("/api/participate/respond", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            questionId,
+                            optionId,
+                        }),
+                    });
+                }
+            },
+        });
 
         async function checkAuth() {
+            const requiredDomain = "@bluesmithis.com";
             const { clientPrincipal } = await (await fetch("/.auth/me")).json();
 
             if (!clientPrincipal) {
-                authMessage.textContent = "Not logged in.";
-                const loginLink = document.createElement("a");
-                loginLink.href = "/login";
-                loginLink.textContent = "Click here to log in with a Google account";
-                document.body.appendChild(loginLink);
+                app.authState = 'none';
                 return;
             }
 
@@ -34,29 +164,47 @@
                 clientPrincipal.identityProvider !== "google"
                 || !clientPrincipal.userDetails.endsWith(requiredDomain)
             ) {
-                authMessage.textContent = "Logged in, but not with a valid account";
-            } else {
-                authMessage.textContent = "Logged in with a valid account";
+                app.authState = 'invalid';
+                return;
             }
-            const loginLink = document.createElement("a");
-            loginLink.href = "/logout";
-            loginLink.textContent = "Click here to log out";
-            document.body.appendChild(loginLink);
 
+            app.authState = 'valid';
+            await connectToSignalR();
+        }
+
+        async function connectToSignalR() {
             const connection = new signalR.HubConnectionBuilder()
                 .withUrl("/api/participate")
-                .configureLogging(signalR.LogLevel.Information)
+                .withAutomaticReconnect()
+                .configureLogging(signalR.LogLevel.Error)
                 .build();
 
-            connection.on('setState', state => {
-                console.log('setState', state);
+            // Set aggressive timeouts and monitor connection state closely to catch any issues quickly.
+            connection.keepAliveIntervalInMilliseconds = 5000;
+            connection.serverTimeoutInMilliseconds = 20000;
+            connection.onreconnecting(error => {
+                console.log(`reconnecting due to ${error}`);
+                app.connected = false;
             });
-            connection.onclose(() => console.log('disconnected'));
+            connection.onreconnected(() => {
+                console.log('reconnected');
+                app.connected = true;
+            });
+            connection.onclose(error => {
+                console.log(`connection closed due to ${error}`);
+                app.connected = false;
+            });
 
-            console.log('connecting...');
-            connection.start()
-                .then(console.log)
-                .catch(console.error);
+            connection.on('setState', state => {
+                app.state = state;
+            });
+
+            connection.start().then(
+                () => {
+                    app.connected = true;
+                },
+                console.error
+            );
         }
 
         checkAuth().catch(console.error);
