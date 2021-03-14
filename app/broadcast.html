@@ -6,27 +6,178 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Company Weekend Game</title>
+
+    <style>
+        html {
+            font-size: 2rem;
+            font-family: Helvetica;
+            text-transform: uppercase;
+        }
+
+        body {
+            margin: 0;
+            color: white;
+        }
+
+        .disconnect-warning {
+            position: absolute;
+            width: 100vw;
+            height: 2em;
+            background-color: red;
+        }
+
+        .container {
+            max-width: 20rem;
+            height: 100vh;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .inner-container {
+            display: flex;
+            flex-direction: column;
+            border: 0.4rem solid #541A3A;
+            background: #17169E;
+            border-radius: 2.5rem;
+            padding: 0.1rem 0.8rem 0.8rem;
+        }
+
+        .option {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .question, .option-text, .option-count {
+            margin: 0.2rem;
+            border: 0.15rem solid #CFCDF2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-radius: 1.25rem;
+        }
+
+        .question {
+            font-size: 1.2rem;
+            height: 5rem;
+            background: radial-gradient(ellipse 2rem 0.3rem at 7rem 0%, rgba(150, 150, 255, 0.7), 30%, transparent),
+                linear-gradient(0deg, rgba(62, 27, 97, 1), 50%, transparent 60%),
+                linear-gradient(5deg, #25109A 75%, #514FB1 80%);
+        }
+
+        .option-text, .option-count {
+            height: 2.2rem;
+        }
+
+        .option-text {
+            flex: 1 0 0;
+            background: radial-gradient(ellipse 2rem 0.3rem at 7rem 0%, rgba(150, 150, 255, 0.7), 30%, transparent),
+                linear-gradient(0deg, rgba(70, 24, 166, 1), 35%, transparent 45%),
+                linear-gradient(8deg, #25109A 75%, #514FB1 80%);
+        }
+
+        .option-count {
+            flex: 0 0 3rem;
+            font-size: 1.5rem;
+            background: linear-gradient(0deg, rgba(70, 24, 166, 1), #25109A 45%);
+        }
+
+        .highlight {
+            animation: highlight 0.5s;
+        }
+        .highlight > .total {
+            animation: highlightTotal 2s;
+        }
+        @keyframes highlight {
+            from {
+                filter: brightness(4);
+            }
+        }
+        @keyframes highlightTotal {
+            from {
+                background: red;
+            }
+        }
+
+        .v-enter-active {
+            animation: fade .5s;
+        }
+        .v-leave-active {
+            animation: fade .5s reverse;
+        }
+        @keyframes fade {
+            from {
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Broadcast</h1>
+    <div id="app">
+        <div class="disconnect-warning" v-if="!connected"></div>
+        <transition>
+            <div class="container" v-if="state">
+                <div class="inner-container">
+                    <div class="question">{{state.QuestionText}}</div>
+                    <div class="option" v-for="(option, optionId) in state.Options" v-bind:key="optionId"
+                        v-bind:class="{ highlight: state.Highlight === optionId }">
+                        <div class="option-text">{{option.OptionText}}</div>
+                        <div class="option-count">{{option.ResponseCount}}</div>
+                    </div>
+                    <div class="option" v-bind:class="{ highlight: state.Highlight === 'total' }">
+                        <div class="option-count total">{{state.ResponseCount}}</div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+    </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@5.0.4/dist/browser/signalr.js"></script>
     <script>
+        const app = new Vue({
+            el: '#app',
+            data: {
+                connected: false,
+                state: null,
+            },
+        });
+
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/api/broadcast")
-            .configureLogging(signalR.LogLevel.Information)
+            .withAutomaticReconnect()
+            .configureLogging(signalR.LogLevel.Error)
             .build();
 
-        connection.on('setState', state => {
-            console.log('setState', state);
+        // Set aggressive timeouts and monitor connection state closely to catch any issues quickly.
+        connection.keepAliveIntervalInMilliseconds = 2000;
+        connection.serverTimeoutInMilliseconds = 10000;
+        connection.onreconnecting(error => {
+            console.log(`reconnecting due to ${error}`);
+            app.connected = false;
         });
-        connection.onclose(() => console.log('disconnected'));
+        connection.onreconnected(() => {
+            console.log('reconnected');
+            app.connected = false;
+        });
+        connection.onclose(error => {
+            console.log(`connection closed due to ${error}`);
+            app.connected = false;
+        });
 
-        console.log('connecting...');
-        connection.start()
-            .then(console.log)
-            .catch(console.error);
+        connection.on('setState', state => {
+            app.state = state;
+        });
+
+        connection.start().then(
+            () => {
+                app.connected = true;
+            },
+            console.error
+        );
     </script>
 </body>
 
