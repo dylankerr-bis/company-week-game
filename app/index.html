@@ -17,6 +17,10 @@
             margin: 0;
         }
 
+        [v-cloak] {
+            display: none;
+        }
+
         .disconnect-warning {
             position: absolute;
             width: 100vw;
@@ -87,7 +91,7 @@
 </head>
 
 <body>
-    <div id="app">
+    <div id="app" v-cloak>
         <div class="disconnect-warning" v-if="authState === 'valid' && !connected">Reconnecting to server...</div>
         <div class="container">
             <div v-if="authState === 'none'">
