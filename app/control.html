@@ -6,10 +6,260 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Company Weekend Game</title>
+
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+
+        .question {
+            border: 1px solid black;
+            border-radius: 1rem;
+            margin: 1rem;
+            padding: 1rem;
+        }
+
+        button {
+            margin: 0.5rem;
+            padding: 0.5rem;
+        }
+
+        th, td {
+            border: 1px solid black;
+        }
+
+        td + td {
+            text-align: center;
+        }
+
+        input[type=checkbox] {
+            margin: 0.5rem;
+            transform: scale(2);
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Control</h1>
+    <div id="app" v-cloak>
+        <button type="button" v-on:click="sendReset">Send reset/idle message</button>
+        <button type="button" v-on:click="loadQuestions">Refresh Questions</button>
+
+        <div class="question" v-for="(question, questionIndex) in questions" v-bind:key="question.QuestionId">
+            <h3>{{question.QuestionId}}: {{question.QuestionText}}</h3>
+            <button type="button" v-on:click="startQuestion(questionIndex)" v-bind:disabled="!!questionTimer">
+                Start question
+            </button>
+            <button type="button" v-on:click="stopQuestion(questionIndex)" v-bind:disabled="!questionTimer">
+                Stop question (automatic after {{timePerQuestion / 1000}} seconds)
+            </button>
+            <button type="button" v-on:click="fetchResponses(questionIndex)">Refresh responses</button>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Option Text</th>
+                        <th>Response Count</th>
+                        <th>Reveal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="option in question.Options" v-bind:key="option.OptionId">
+                        <td>{{option.OptionText}}</td>
+                        <td>{{option.ResponseCount}}</td>
+                        <td>
+                            <input type="checkbox" v-bind:checked="option.Reveal"
+                                v-on:change="toggleReveal(questionIndex, option)" />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button type="button" v-on:click="broadcastQuestion(questionIndex, 'total')">
+                Incorrect{{question.ResponseCount ? ` (${question.ResponseCount} points)` : ''}}
+            </button>
+            <br />
+            <button type="button" v-on:click="revealAllOptions(questionIndex)">Reveal all options</button>
+        </div>
+
+        <div v-if="error">
+            <h3>Error</h3>
+            <pre>{{error}}</pre>
+            <button v-on:click="clearError">Clear Error</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script>
+        const timePerQuestion = 30 * 1000;
+
+        const app = new Vue({
+            el: '#app',
+            data: {
+                timePerQuestion,
+                error: null,
+                questionTimer: null,
+                questions: [],
+            },
+            methods: {
+                async broadcastQuestion(questionIndex, highlight = null) {
+                    try {
+                        const question = app.getQuestion(questionIndex);
+                        const broadcastQuestion = {
+                            ...question,
+                            Highlight: highlight,
+                            Options: question.Options
+                                .slice()
+                                .sort((a, b) => (b.ResponseCount || 0) - (a.ResponseCount || 0))
+                                .map(option => ({
+                                    OptionId: option.OptionId,
+                                    OptionText: option.Reveal ? option.OptionText : "",
+                                    ResponseCount: option.Reveal ? option.ResponseCount : "",
+                                })),
+                        };
+                        await app.setBroadcastState(broadcastQuestion);
+                    } catch (e) {
+                        console.error(e);
+                        app.error = e;
+                    }
+                },
+                clearError() {
+                    app.error = null;
+                },
+                async fetchResponses(questionIndex) {
+                    try {
+                        const question = app.getQuestion(questionIndex);
+                        const {
+                            responseCount,
+                            aggregatedResponses,
+                        } = await (await fetch(`/api/control/question/${question.QuestionId}/responses`)).json();
+
+                        app.questions[questionIndex].ResponseCount = responseCount;
+                        app.questions[questionIndex].Options.forEach(option => {
+                            option.ResponseCount = aggregatedResponses[option.OptionId] || 0;
+                        });
+                    } catch (e) {
+                        console.error(e);
+                        app.error = e;
+                    }
+                },
+                getQuestion(questionIndex) {
+                    const question = app.questions[questionIndex]
+                    if (!question) {
+                        throw new Error(`Invalid questionIndex ${questionIndex}`);
+                    }
+                    return question;
+                },
+                async loadQuestions() {
+                    try {
+                        const { questions } = await (await fetch("/api/control/questions")).json();
+                        app.questions = questions
+                            .map(question => ({
+                                QuestionId: question.RowKey,
+                                QuestionText: question.QuestionText,
+                                Options: JSON.parse(question.Options).map((option, optionIndex) => ({
+                                    OptionId: optionIndex,
+                                    OptionText: option,
+                                    ResponseCount: null,
+                                    Reveal: false,
+                                })),
+                                ResponseCount: null,
+                            }))
+                            .sort((a, b) => a.QuestionId.localeCompare(b.QuestionId));
+                    } catch (e) {
+                        console.error(e);
+                        app.error = e;
+                    }
+                },
+                revealAllOptions(questionIndex) {
+                    try {
+                        const question = app.getQuestion(questionIndex);
+                        question.Options.forEach(option => {
+                            option.Reveal = true;
+                        });
+                        app.broadcastQuestion(questionIndex);
+                    } catch (e) {
+                        console.error(e);
+                        app.error = e;
+                    }
+                },
+                async setBroadcastState(state) {
+                    const response = await fetch("/api/control/broadcast", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ state }),
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Non-ok response while setting broadcast state: ${response.status}`);
+                    }
+                },
+                async setParticipateState(state) {
+                    const response = await fetch("/api/control/participate", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ state }),
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Non-ok response while setting participate state: ${response.status}`);
+                    }
+                },
+                async sendReset() {
+                    try {
+                        if (app.questionTimer) {
+                            clearTimeout(app.questionTimer);
+                            app.questionTimer = null;
+                        }
+                        await Promise.all([app.setBroadcastState(null), app.setParticipateState(null)]);
+                    } catch (e) {
+                        console.error(e);
+                        app.error = e;
+                    }
+                },
+                async startQuestion(questionIndex) {
+                    try {
+                        app.broadcastQuestion(questionIndex);
+                        const question = app.getQuestion(questionIndex);
+                        const participateQuestion = {
+                            QuestionId: question.QuestionId,
+                            QuestionText: question.QuestionText,
+                            Options: question.Options.map(option => option.OptionText),
+                        };
+                        await app.setParticipateState(participateQuestion);
+                        app.questionTimer = setTimeout(() => {
+                            app.stopQuestion(questionIndex);
+                        }, timePerQuestion);
+                    } catch (e) {
+                        console.error(e);
+                        app.error = e;
+                    }
+                },
+                async stopQuestion(questionIndex) {
+                    try {
+                        if (app.questionTimer) {
+                            clearTimeout(app.questionTimer);
+                            app.questionTimer = null;
+                        }
+                        await app.setParticipateState(null);
+                        await app.fetchResponses(questionIndex);
+                        app.broadcastQuestion(questionIndex);
+                    } catch (e) {
+                        console.error(e);
+                        app.error = e;
+                    }
+                },
+                toggleReveal(questionIndex, option) {
+                    option.Reveal = !option.Reveal;
+                    const highlight = option.Reveal ? option.OptionId : null;
+                    app.broadcastQuestion(questionIndex, highlight);
+                }
+            },
+        });
+
+        app.loadQuestions();
+    </script>
 </body>
 
 </html>

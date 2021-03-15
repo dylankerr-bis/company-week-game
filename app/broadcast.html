@@ -126,8 +126,8 @@
             <div class="container" v-if="state">
                 <div class="inner-container">
                     <div class="question">{{state.QuestionText}}</div>
-                    <div class="option" v-for="(option, optionId) in state.Options" v-bind:key="optionId"
-                        v-bind:class="{ highlight: state.Highlight === optionId }">
+                    <div class="option" v-for="option in state.Options" v-bind:key="option.OptionId"
+                        v-bind:class="{ highlight: state.Highlight === option.OptionId }">
                         <div class="option-text">{{option.OptionText}}</div>
                         <div class="option-count">{{option.ResponseCount}}</div>
                     </div>
@@ -172,8 +172,21 @@
             app.connected = false;
         });
 
+        let highlightTimer = null;
         connection.on('setState', state => {
+            if (highlightTimer !== null) {
+                clearTimeout(highlightTimer);
+                highlightTimer = null;
+            }
+
             app.state = state;
+
+            if (state && state.Highlight) {
+                highlightTimer = setTimeout(() => {
+                    app.state.Highlight = null;
+                    highlightTimer = null;
+                }, 2000);
+            }
         });
 
         connection.start().then(
